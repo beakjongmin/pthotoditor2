@@ -2,7 +2,7 @@ package com.ruto.pthotoditor2.core.image.opencv.process.filter
 
 import android.graphics.Bitmap
 import android.util.Log
-import com.ruto.pthotoditor2.core.image.ml.debuggingfunction.ColorLogger
+import com.ruto.pthotoditor2.debuggingfunction.ColorLogger
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.Mat
@@ -162,6 +162,16 @@ object SharpEffectProcessor {
             )
             Core.merge(reorderedChannels, result)
 
+            // 알파 0인 픽셀의 RGB를 강제로 0으로 클리핑
+            for (y in 0 until result.rows()) {
+                for (x in 0 until result.cols()) {
+                    val pixel = result.get(y, x)
+                    val alpha = pixel[3]
+                    if (alpha == 0.0) {
+                        result.put(y, x, 0.0, 0.0, 0.0, 0.0)
+                    }
+                }
+            }
             // 🔄 리소스 해제
             alpha.release()
             rgbaChannels.forEach { it.release() }
