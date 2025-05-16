@@ -2,26 +2,25 @@ package com.ruto.pthotoditor2.feature.editor.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Color
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ruto.photoeditor2.core.image.ml.SuperResolutionHelper
 import com.ruto.pthotoditor2.core.image.opencv.OpenCvFilters
-import com.ruto.pthotoditor2.core.image.opencv.OpenCvFilters.applyEyeFilterWithMask
-import com.ruto.pthotoditor2.core.image.opencv.OpenCvFilters.applyFilterWithMask
 import com.ruto.pthotoditor2.core.image.opencv.OpenCvUtils
-import com.ruto.pthotoditor2.core.image.opencv.OpenCvUtils.blendWithMask
 import com.ruto.pthotoditor2.core.image.opencv.OpenCvUtils.toSoftAlphaMask
+import com.ruto.pthotoditor2.core.image.opencv.process.filter.facialfacepart.EyesFilter.applySnowStyleSharp
 import com.ruto.pthotoditor2.core.image.segmentation.process.dslr.ensureSoftwareConfig
 import com.ruto.pthotoditor2.core.image.segmentation.process.facedetection.SelfieSegmentor
 import com.ruto.pthotoditor2.core.image.segmentation.process.facedetection.SelfieSegmentor.detectFaceWithHairRegion
 import com.ruto.pthotoditor2.core.image.segmentation.process.mask.FacialPartMaskUtil.createEyeAndMouthMasks
-import com.ruto.pthotoditor2.core.image.segmentation.process.mask.FacialPartMaskUtil.subtractMask
-import com.ruto.pthotoditor2.core.image.segmentation.process.mask.MasktoAlpha
 import com.ruto.pthotoditor2.core.image.segmentation.process.mask.scailing.MaskScale.featherAlphaMask
-import com.ruto.pthotoditor2.core.image.segmentation.process.mask.scailing.MaskScale.scaleMaskWithCanvas
+import com.ruto.pthotoditor2.debuggingfunction.ColorLogger.visualizeAlphaMask
 import com.ruto.pthotoditor2.debuggingfunction.saveImageToGallery
 import com.ruto.pthotoditor2.feature.editor.model.UpScaletype
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,6 +42,7 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
     fun getEffectTypes(): List<UpScaletype> = UpScaletype.values().toList()
 
 
+
     fun applyPortraitEffect(
         context: Context,
         original: Bitmap?,
@@ -56,17 +56,9 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
                 withContext(Dispatchers.Main) { _isProcessing.value = true }
 
                 val safeOriginal = original.ensureSoftwareConfig()
-
-                val mask = SelfieSegmentor.segment(safeOriginal)
-                val maskBitmap = toSoftAlphaMask(mask, safeOriginal.width, safeOriginal.height)
-
-                // ✅ 머리 영역 좌표 계산
-                val faceRect = detectFaceWithHairRegion(safeOriginal)
-
-                if (faceRect == null) {
-
+                val faceRect = detectFaceWithHairRegion(safeOriginal) ?: run {
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "얼굴을 인식할수 없습니다.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "얼굴을 인식할 수 없습니다.", Toast.LENGTH_SHORT).show()
                         _isProcessing.value = false
                         onResult(original)
                     }
@@ -74,111 +66,62 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
                 }
 
                 val croppedHead = Bitmap.createBitmap(safeOriginal, faceRect.left, faceRect.top, faceRect.width(), faceRect.height())
-                Log.d("EnhancementViewModel", "📌 얼굴+헤어 영역 크롭 완료: ${croppedHead.width}x${croppedHead.height} at (${faceRect.left}, ${faceRect.top})")
 
+                // 마스크 생성 (전체 face mask)
+                val fullPersonMask = SelfieSegmentor.segment(croppedHead)
+                val faceAlphaMask = toSoftAlphaMask(fullPersonMask, croppedHead.width, croppedHead.height)
 
-                // ✅ 업스케일
-                val upscaled = SuperResolutionHelper.upscale(context, croppedHead)
-                Log.d("EnhancementViewModel", "🆙 업스케일 완료: ${upscaled.width}x${upscaled.height}")
-
-
-                // 🧠 눈/입 마스크 생성
-                val (eyeMask, mouthMask) = createEyeAndMouthMasks(croppedHead)
-                if (eyeMask == null || mouthMask == null) {
-                    Log.w("EnhancementViewModel", "눈 또는 입 마스크 생성 실패. 필터 적용 건너뜀")
+                // Eye mask 생성
+                val (eyeMaskRaw, _) = createEyeAndMouthMasks(croppedHead)
+                if (eyeMaskRaw == null) {
+                    Log.w("EnhancementViewModel", "❌ Eye Mask 생성 실패. 종료.")
                     withContext(Dispatchers.Main) {
                         _isProcessing.value = false
                         onResult(original)
                     }
                     return@launch
                 }
-                Log.d("DebugAlpha", "🕵️‍♂️eyeMask.config: ${eyeMask.config}")
 
-                val argbEyeMask = MasktoAlpha.toAlphaDrawableMask(eyeMask)
+                // 필터 처리
 
-                var whiteCount = 0
-                for (y in 0 until argbEyeMask.height) {
-                    for (x in 0 until argbEyeMask.width) {
-                        val a = Color.alpha(argbEyeMask.getPixel(x, y))
-                        if (a > 200) whiteCount++
-                    }
-                }
-                Log.d("DebugMask", "🧮 알파 > 200인 픽셀 수: $whiteCount")
+                val filteredFace = applyFilter(croppedHead, type) //전체 필터 적용
 
-
-
-//                val argbMouthMask = MasktoAlpha.toAlphaDrawableMask(mouthMask)
-
-                val upscaledEyeMask = scaleMaskWithCanvas(argbEyeMask, upscaled.width, upscaled.height)
-
-//                val upscaledMouthMask = Bitmap.createScaledBitmap(argbMouthMask, upscaled.width, upscaled.height, false)
-
-                val croppedMask = Bitmap.createBitmap(maskBitmap, faceRect.left, faceRect.top, faceRect.width(), faceRect.height())
-                val maskUpscaled = Bitmap.createScaledBitmap(croppedMask, upscaled.width, upscaled.height, false)
-
-                // ✅ 눈 제외 마스크 생성
-                val maskWithoutEyes = subtractMask(maskUpscaled, upscaledEyeMask)
-
-//                val debugEye = debugDrawMaskOverlay(argbEyeMask, croppedHead.copy(Bitmap.Config.ARGB_8888, true))
-//                saveImageToGallery(context,debugEye)
-
-                // ✅ 필터 적용 (눈 제외)
-
-                val filtered = when (type) {
-                    UpScaletype.SHARP -> {
-                        applyFilterWithMask(context, upscaled, maskWithoutEyes) {
-                            OpenCvFilters.applySharp(it)
-                        }
-                    }
-                    UpScaletype.SOFT -> {
-                        applyFilterWithMask(context, upscaled, maskWithoutEyes) {
-                            OpenCvFilters.applySoft(it)
-                        }
-                    }
-                    UpScaletype.CLEAR -> {
-                        applyFilterWithMask(context, upscaled, maskWithoutEyes) {
-                            OpenCvFilters.applyClear(it)
-                        }
-                    }
-                    UpScaletype.NATURAL -> {
-                        applyFilterWithMask(context, upscaled, maskWithoutEyes) {
-                            OpenCvFilters.applyNatural(it)
-                        }
-                    }
-                    UpScaletype.UPSCALEONLY -> {
-                        upscaled
-                    }
-                }
-
-//                saveImageToGallery(context,filtered)
-                // ✅ 눈 강화 필터 별도 적용
-                val enhancedEyes = applyEyeFilterWithMask(upscaled, upscaledEyeMask) {
-                    OpenCvFilters.applyEyeEnhancement(it)
-                }
-//                 val enhancedEyes = upscaled.copy(Bitmap.Config.ARGB_8888, true)
-
-                val upscaledEyeMaskFeathered = featherAlphaMask(upscaledEyeMask,  radius = 7.0)
-
-//                 saveImageToGallery(context,enhancedEyes)
-                // ✅ 눈 결과를 전체 필터 결과 위에 덮어씀 (눈 필터를 전체 필터 위에 덮어쓰기)
-                val eyeBlended = blendWithMask(
-                    base = filtered,
-                    overlay = enhancedEyes,
-                    mask = upscaledEyeMaskFeathered
-                )
-                saveImageToGallery(context,eyeBlended)
+                val filteredEyes = applySnowStyleSharp(croppedHead) //눈만적용
+                Log.d("enhance","${filteredEyes.config}")
+                Log.d("enhance","faceAlphaMask ${faceAlphaMask.config}")
+                Log.d("enhance","eyeMaskRaw ${eyeMaskRaw.config}")
+                // Feather 마스크 처리
+                val faceFeather = featherAlphaMask(faceAlphaMask, 5.0)
+                Log.d("enhance","faceFeather 완료 ${faceFeather.config}")
+                val eyeFeather = featherAlphaMask(eyeMaskRaw, 5.0)
+                Log.d("enhance","faceFeather 완료 ${eyeFeather.config}")
 
 
-                // ✅ 톤 매칭 (original과 비교)
-                val toneCorrected = OpenCvUtils.matchToneByMean(upscaled, eyeBlended)
 
-                // ✅ 다시 원래 크기로 다운스케일
-                val restoredSize = Bitmap.createScaledBitmap(toneCorrected, faceRect.width(), faceRect.height(), false)
+                // 결과 이미지 베이스
+                val resultBitmap = Bitmap.createBitmap(croppedHead.width, croppedHead.height, Bitmap.Config.ARGB_8888)
+                Canvas(resultBitmap).drawBitmap(croppedHead, 0f, 0f, null)
 
-                // ✅ 원본 이미지에 블렌딩
-                val maskRegion = Bitmap.createBitmap(maskBitmap, faceRect.left, faceRect.top, faceRect.width(), faceRect.height())
-                val maskRestored = Bitmap.createScaledBitmap(maskRegion, faceRect.width(), faceRect.height(), false)
+                // 부위별 블렌딩
+                blend(resultBitmap, filteredFace, faceFeather)
 
+                blend(resultBitmap, filteredEyes, eyeFeather)
+                val debugmask = visualizeAlphaMask(eyeMaskRaw)
+                saveImageToGallery(context, debugmask, "debug_eyeMaskRaw")
+
+                // 톤 매칭
+                val toneMatched = OpenCvUtils.matchToneByMean(croppedHead, resultBitmap)
+                saveImageToGallery(context, toneMatched, "debug_toneMatched")
+                // 업스케일 (마지막 단계)
+                val upscaledFinal = SuperResolutionHelper.upscale(context, toneMatched)
+                saveImageToGallery(context, upscaledFinal, "debug_upscaledFinal")
+                // 원래 faceRect 크기로 리사이즈 (원본 합성용)
+                val restoredSize = Bitmap.createScaledBitmap(upscaledFinal, faceRect.width(), faceRect.height(), true)
+
+                // 원본 마스크도 faceRect 기준으로 맞춤
+                val maskRestored = Bitmap.createScaledBitmap(faceAlphaMask, faceRect.width(), faceRect.height(), true)
+
+                // 원본 이미지에 합성
                 val final = OpenCvUtils.blendCroppedRegionBack(
                     original = safeOriginal,
                     upscaledPerson = restoredSize,
@@ -186,20 +129,61 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
                     offsetX = faceRect.left,
                     offsetY = faceRect.top
                 )
-
-                Log.d("EnhancementViewModel", "🧪  처리된 이미지 크기: ${final.width}x${final.height}")
-
+                saveImageToGallery(context, final, "debug_finalOutput")
                 withContext(Dispatchers.Main) {
                     onResult(final)
                     _isProcessing.value = false
                 }
 
             } catch (e: Exception) {
-                Log.e("EnhancementViewModel", "❌ 인물 효과 실패: ${e.message}", e)
+                Log.e("EnhancementViewModel", "❌ 오류: ${e.message}", e)
                 withContext(Dispatchers.Main) { _isProcessing.value = false }
             }
         }
     }
 
+    private fun applyFilter(source: Bitmap, type: UpScaletype): Bitmap {
+        return when (type) {
+            UpScaletype.SHARP -> {
+                OpenCvFilters.applySharp(source)
+            }
+            UpScaletype.SOFT -> {
+                OpenCvFilters.applySoft(source)
+            }
+            UpScaletype.CLEAR -> {
+                OpenCvFilters.applyClear(source)
+            }
+            UpScaletype.NATURAL -> {
+                OpenCvFilters.applyNatural(source)
+            }
+            UpScaletype.UPSCALEONLY -> {
+                source
+            }
+        }
+    }
+
+    private fun blend(base: Bitmap, overlay: Bitmap, alphaMask: Bitmap) {
+        val paint = Paint().apply {
+            isAntiAlias = true
+            isFilterBitmap = true
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+        }
+
+        // Masked overlay 준비
+        /**
+         * overlay를 maskedOverlay 위에 그대로 그림
+         * 예: 눈 필터링 된 sharp 이미지를 덮어씀.
+         * RGB 값이 maskedOverlay에 먼저 들어감.
+         */
+
+        val maskedOverlay = Bitmap.createBitmap(base.width, base.height, Bitmap.Config.ARGB_8888)
+        Canvas(maskedOverlay).apply {
+            drawBitmap(overlay, 0f, 0f, null)
+            drawBitmap(alphaMask, 0f, 0f, paint)
+        }
+
+        // 최종 base 위에 합성
+        Canvas(base).drawBitmap(maskedOverlay, 0f, 0f, null)
+    }
 
 }

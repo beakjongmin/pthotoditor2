@@ -178,7 +178,7 @@ object FacialPartMaskUtil {
     }
     // 🔁 [NEW] 회전 보정 함수
     fun rotateBitmap(mask: Bitmap, angle: Float): Bitmap {
-        val output = Bitmap.createBitmap(mask.width, mask.height,Bitmap.Config.ALPHA_8)
+        val output = Bitmap.createBitmap(mask.width, mask.height,Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
         val matrix = Matrix().apply {
             postRotate(angle, mask.width / 2f, mask.height / 2f)
