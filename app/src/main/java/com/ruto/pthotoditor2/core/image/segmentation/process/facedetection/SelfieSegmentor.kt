@@ -52,12 +52,15 @@ object SelfieSegmentor {
         val face = faces.first().boundingBox
 
         // 헤어를 포함하도록 위로 확장
+//        val extendedTop = (face.top - face.height() * 0.3f).toInt().coerceAtLeast(0)
+//        val extendedBottom = (face.bottom + face.height() * 0.05f).toInt().coerceAtMost(bitmap.height)
+//        val paddingRatio = 0.01f // 좌우로 얼굴 너비의 10%씩 확장
+//        val extendedLeft = (face.left - face.width() * paddingRatio).toInt().coerceAtLeast(0)
+//        val extendedRight = (face.right + face.width() * paddingRatio).toInt().coerceAtMost(bitmap.width)
         val extendedTop = (face.top - face.height() * 0.3f).toInt().coerceAtLeast(0)
-        val extendedBottom = (face.bottom + face.height() * 0.1f).toInt().coerceAtMost(bitmap.height)
-        val paddingRatio = 0.2f // 좌우로 얼굴 너비의 10%씩 확장
-        val extendedLeft = (face.left - face.width() * paddingRatio).toInt().coerceAtLeast(0)
-        val extendedRight = (face.right + face.width() * paddingRatio).toInt().coerceAtMost(bitmap.width)
-
+        val extendedBottom = (face.bottom + face.height() * 0.08f).toInt().coerceAtMost(bitmap.height)
+        val extendedLeft = face.left
+        val extendedRight = face.right
         return Rect(extendedLeft, extendedTop, extendedRight, extendedBottom)
     }
 
