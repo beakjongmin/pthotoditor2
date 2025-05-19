@@ -19,6 +19,24 @@
 | 🔄 필터 겹침 현상 | 눈·입·피부 필터 간 경계가 맞지 않아 Tone mismatch 현상 발생 |
 | ❌ 자연스러운 윤곽 부족 | 헤어 라인 또는 턱 라인 필터 적용 시 부자연스러운 경계 표현 |
 
+
+### 🎨 전체 이미지 필터 처리 비교
+
+| Before (Original) | After (Filtered) |
+|-------------------|------------------|
+| ![Original](sampleimage/original.png) | ![Filtered](sampleimage/final.jpg) |
+| 원본 전체 이미지 |기존 필터 적용 후 전체 이미지 결과 |
+
+---
+
+### ✂️ 얼굴 영역 마스크 비교
+
+| Cropped Face (Rect) | Processed Face (FaceMesh Filtered) |
+|---------------------|------------------------------------|
+| ![Cropped](sampleimage/cropped.jpg) | ![Sharped](sampleimage/sharped.jpg) |
+| Rect 기반 얼굴 잘라낸 이미지 | 기존 필터 처리된 얼굴 |
+
+
 ### 개선 후 기대 효과
 
 | 개선 항목 | 기대 결과 |
@@ -63,6 +81,16 @@
 
 - `com.google.mediapipe:facemesh:0.10.20` 의존성 추가
 - `FaceMesh.getClient()` 로 얼굴 landmark 획득
+
+---
+
+### 🧪 Example
+
+![face_landmark](sampleimage/face_landmark.png)
+
+> MediaPipe FaceMesh로 추출된 얼굴 윤곽 랜드마크 시각화 예시입니다.
+
+---
 
 ### 2. 얼굴 윤곽선 마스크 생성
 
