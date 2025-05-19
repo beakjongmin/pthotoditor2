@@ -31,7 +31,7 @@
 
 ### ✂️ 얼굴 영역 마스크 비교
 
-| Cropped Face (Rect) | Processed Face (FaceMesh Filtered) |
+| Cropped Face (Rect) | Processed Face (Filtered) |
 |---------------------|------------------------------------|
 | ![Cropped](sampleimage/cropped.jpg) | ![Sharped](sampleimage/sharped.jpg) |
 | Rect 기반 얼굴 잘라낸 이미지 | 기존 필터 처리된 얼굴 |
