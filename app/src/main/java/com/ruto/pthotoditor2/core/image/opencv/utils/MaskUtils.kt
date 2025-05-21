@@ -3,6 +3,10 @@ package com.ruto.pthotoditor2.core.image.opencv.utils
 import android.graphics.Bitmap
 import android.graphics.Color
 import com.google.mlkit.vision.segmentation.SegmentationMask
+import org.opencv.android.Utils
+import org.opencv.core.Core
+import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
 
 
 /*
@@ -53,4 +57,27 @@ object MaskUtils {
         return result
     }
 
+    fun andMasks(mask1: Bitmap, mask2: Bitmap): Mat {
+        val m1 = Mat()
+        val m2 = Mat()
+        val gray1 = Mat()
+        val gray2 = Mat()
+        val result = Mat()
+        try {
+            Utils.bitmapToMat(mask1, m1)
+            Utils.bitmapToMat(mask2, m2)
+
+            Imgproc.cvtColor(m1, gray1, Imgproc.COLOR_RGBA2GRAY)
+            Imgproc.cvtColor(m2, gray2, Imgproc.COLOR_RGBA2GRAY)
+
+            Core.bitwise_and(gray1, gray2, result)
+            return result.clone() // 호출자에서 해제해야 하므로 clone()
+        } finally {
+            m1.release()
+            m2.release()
+            gray1.release()
+            gray2.release()
+            // result는 호출자에서 사용하는 값이므로 여기서는 release X
+        }
+    }
 }

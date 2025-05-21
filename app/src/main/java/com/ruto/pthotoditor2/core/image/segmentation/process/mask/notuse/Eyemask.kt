@@ -1,4 +1,4 @@
-package com.ruto.pthotoditor2.core.image.segmentation.process.mask
+package com.ruto.pthotoditor2.core.image.segmentation.process.mask.notuse
 
 import android.graphics.Bitmap
 import android.graphics.Canvas

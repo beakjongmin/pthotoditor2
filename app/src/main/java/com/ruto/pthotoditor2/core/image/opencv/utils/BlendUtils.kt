@@ -27,8 +27,7 @@ object BlendUtils {
         val paint = Paint().apply {
             isAntiAlias = true
             isFilterBitmap = true
-            xfermode =
-                PorterDuffXfermode(PorterDuff.Mode.DST_IN) //결과 = 기존 maskedOverlay 이미지 * alphaMask의 알파값 (0.0 ~ 1.0)
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN) //결과 = 기존 maskedOverlay 이미지 * alphaMask의 알파값 (0.0 ~ 1.0)
         }
 
         val maskedOverlay = Bitmap.createBitmap(base.width, base.height, Bitmap.Config.ARGB_8888)
