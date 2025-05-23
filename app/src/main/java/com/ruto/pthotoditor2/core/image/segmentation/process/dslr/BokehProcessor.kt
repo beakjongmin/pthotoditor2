@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import com.google.mlkit.vision.segmentation.SegmentationMask
+import com.ruto.pthotoditor2.core.image.commonutil.HardwareBitmapConvert.ensureSoftwareConfig
 import com.ruto.pthotoditor2.core.image.segmentation.process.facedetection.SelfieSegmentor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -1,31 +1,37 @@
 package com.ruto.pthotoditor2.core.image.segmentation.process.mask.scailing
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
 import org.opencv.android.Utils
 import org.opencv.core.Core
+import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 
 object MaskScale {
 
-    fun scaleMaskWithCanvas(mask: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
-        val scaledMask = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(scaledMask)
+    fun featherAlphaMask2(mask: Bitmap, radius: Double = 3.0): Bitmap {
+        val mat = Mat()
+        Utils.bitmapToMat(mask, mat)
 
-        val paint = Paint().apply {
-            isAntiAlias = true
-            isFilterBitmap = true
-        }
+        val channels = ArrayList<Mat>()
+        Core.split(mat, channels)
 
-        val scaleX = targetWidth / mask.width.toFloat()
-        val scaleY = targetHeight / mask.height.toFloat()
+        val alpha = channels.getOrNull(3)
+            ?: throw IllegalStateException("Alpha channel not found")
 
-        canvas.scale(scaleX, scaleY)
-        canvas.drawBitmap(mask, 0f, 0f, paint)
-        return scaledMask
+        // ❗ get()은 생략, 대신 안전하게 변환
+        val safeAlpha = Mat()
+        alpha.convertTo(safeAlpha, CvType.CV_8UC1)
+
+        Imgproc.GaussianBlur(safeAlpha, safeAlpha, Size(radius, radius), 0.0)
+
+        channels[3] = safeAlpha
+        Core.merge(channels, mat)
+
+        val result = Bitmap.createBitmap(mask.width, mask.height, Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(mat, result)
+        return result
     }
 
     fun featherAlphaMask(mask: Bitmap, radius: Double = 3.0): Bitmap {

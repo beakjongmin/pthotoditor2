@@ -41,6 +41,7 @@ android {
         compose = true
         mlModelBinding = true
     }
+
 }
 
 dependencies {
@@ -128,6 +129,9 @@ dependencies {
     // Compose용 Hilt (선택)
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
-//    //Open CV
+
+    //image masking (face landmark)
+    implementation ("com.google.mediapipe:tasks-vision:0.10.21")
+
 
 }

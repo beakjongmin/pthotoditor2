@@ -7,7 +7,8 @@ package com.ruto.pthotoditor2.feature.editor.viewmodel
 
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
-import com.ruto.pthotoditor2.core.image.segmentation.process.dslr.ensureSoftwareConfig
+import com.ruto.pthotoditor2.core.image.commonutil.HardwareBitmapConvert.ensureSoftwareConfig
+
 import com.ruto.pthotoditor2.feature.editor.model.EditorMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
