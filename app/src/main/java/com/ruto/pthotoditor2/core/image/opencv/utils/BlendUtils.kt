@@ -39,6 +39,52 @@ object BlendUtils {
         // 최종 base 위에 합성
         Canvas(base).drawBitmap(maskedOverlay, 0f, 0f, null)
     }
+    fun blendopencv(base: Bitmap, overlay: Bitmap, alphaMask: Bitmap) {
+        val width = base.width
+        val height = base.height
+
+        require(overlay.width == width && overlay.height == height) { "overlay 크기 불일치" }
+        require(alphaMask.width == width && alphaMask.height == height) { "alphaMask 크기 불일치" }
+
+        val basePixels = IntArray(width * height)
+        val overlayPixels = IntArray(width * height)
+        val alphaPixels = IntArray(width * height)
+
+        base.getPixels(basePixels, 0, width, 0, 0, width, height)
+        overlay.getPixels(overlayPixels, 0, width, 0, 0, width, height)
+        alphaMask.getPixels(alphaPixels, 0, width, 0, 0, width, height)
+
+        for (i in basePixels.indices) {
+            val baseColor = basePixels[i]
+            val overlayColor = overlayPixels[i]
+            val alphaColor = alphaPixels[i]
+
+            val alpha = ((alphaColor shr 24) and 0xFF) / 255f // soft mask 알파값 추출 (0.0 ~ 1.0)
+
+            // 픽셀이 완전히 투명하면 패스
+            if (alpha == 0f) continue
+            if (alpha == 1f) {
+                basePixels[i] = overlayColor
+                continue
+            }
+
+            val r1 = (baseColor shr 16) and 0xFF
+            val g1 = (baseColor shr 8) and 0xFF
+            val b1 = baseColor and 0xFF
+
+            val r2 = (overlayColor shr 16) and 0xFF
+            val g2 = (overlayColor shr 8) and 0xFF
+            val b2 = overlayColor and 0xFF
+
+            val r = (r1 * (1 - alpha) + r2 * alpha).toInt().coerceIn(0, 255)
+            val g = (g1 * (1 - alpha) + g2 * alpha).toInt().coerceIn(0, 255)
+            val b = (b1 * (1 - alpha) + b2 * alpha).toInt().coerceIn(0, 255)
+
+            basePixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+        }
+
+        base.setPixels(basePixels, 0, width, 0, 0, width, height)
+    }
 
     fun blendCroppedRegionBack(
         original: Bitmap,
