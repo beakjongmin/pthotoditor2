@@ -1,4 +1,4 @@
-package com.ruto.pthotoditor2.feature.editor.components
+package com.ruto.pthotoditor2.feature.editor.components.dslr
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

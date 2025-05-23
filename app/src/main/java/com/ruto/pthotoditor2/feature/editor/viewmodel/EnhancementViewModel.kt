@@ -35,6 +35,13 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing = _isProcessing.asStateFlow()
 
+    private val _isUpscalEnabled = MutableStateFlow(true)
+    val isUpscalEnabled = _isUpscalEnabled.asStateFlow()
+
+    fun SetUpscalEnabled(enabled: Boolean) {
+        _isUpscalEnabled.value = enabled
+    }
+
     fun getEffectTypes(): List<UpScaletype> = UpScaletype.entries
 
 
@@ -162,11 +169,20 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
                 //이미지 업스케일링 및 이미지 사이즈 조절 ( 화질 향상)
                 
                 //업스케일 (마지막 단계)
-                val upscaledFinal = SuperResolutionHelper.upscale(context, toneMatched)
+
+                // ✅ 조건 분기 처리
+                val resultForBlend = if (_isUpscalEnabled.value) {
+                    Log.d("업스케일진행 로그","업스케일 진행합니다 ${_isUpscalEnabled.value}")
+                    val upscaled = SuperResolutionHelper.upscale(context, toneMatched)
+                    Bitmap.createScaledBitmap(upscaled, faceRect.width(), faceRect.height(), true)
+                } else {
+                    toneMatched
+                }
+
                
                 // 원래 faceRect 크기로 리사이즈 (원본 합성용)
                 val restoredSize = Bitmap.createScaledBitmap(
-                    upscaledFinal,
+                    resultForBlend,
                     faceRect.width(),
                     faceRect.height(),
                     true

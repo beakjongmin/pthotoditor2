@@ -1,4 +1,4 @@
-package com.ruto.pthotoditor2.feature.editor.components
+package com.ruto.pthotoditor2.feature.editor.components.upscale
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ruto.pthotoditor2.feature.editor.model.UpScaletype
 import com.ruto.pthotoditor2.feature.editor.viewmodel.EnhancementViewModel
@@ -37,6 +40,11 @@ fun UpScaleSelector(
 ) {
     val effects = remember { enhancementViewModel.getEffectTypes() }
     var selected by remember { mutableStateOf<UpScaletype?>(null) }
+
+    // ✅ 사진(original)이 바뀔 때마다 선택 초기화
+    LaunchedEffect(original) {
+        selected = null
+    }
 
     Column(
         modifier = Modifier
@@ -85,4 +93,19 @@ fun UpScaleSelector(
             }
         }
     }
+}
+// 🔹 Fake ViewModel for preview only
+@Preview(showBackground = true, backgroundColor = 0xFF222222)
+@Composable
+fun UpScaleSelectorPreview() {
+    val context = LocalContext.current
+    val viewModel = EnhancementViewModel()
+    val bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+
+    UpScaleSelector(
+        context = context,
+        enhancementViewModel = viewModel,
+        original = bitmap,
+        onResult = {}
+    )
 }

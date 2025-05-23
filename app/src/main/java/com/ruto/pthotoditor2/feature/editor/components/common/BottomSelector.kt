@@ -1,4 +1,4 @@
-package com.ruto.pthotoditor2.feature.editor.components
+package com.ruto.pthotoditor2.feature.editor.components.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
