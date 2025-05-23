@@ -12,7 +12,6 @@ import com.ruto.photoeditor2.core.image.ml.SuperResolutionHelper
 import com.ruto.pthotoditor2.core.image.commonutil.HardwareBitmapConvert.ensureSoftwareConfig
 import com.ruto.pthotoditor2.core.image.opencv.OpenCvFilters
 import com.ruto.pthotoditor2.core.image.opencv.OpenCvUtils
-
 import com.ruto.pthotoditor2.core.image.segmentation.process.facedetection.SelfieSegmentor
 import com.ruto.pthotoditor2.core.image.segmentation.process.facedetection.SelfieSegmentor.detectFaceWithHairRegion
 import com.ruto.pthotoditor2.core.image.segmentation.process.facelandmark.FaceLandmarkerHelper
@@ -20,6 +19,7 @@ import com.ruto.pthotoditor2.core.image.segmentation.process.mask.FacialPartMask
 import com.ruto.pthotoditor2.core.image.segmentation.process.mask.MaskBlender
 import com.ruto.pthotoditor2.core.image.segmentation.process.mask.scailing.MaskScale.featherAlphaMask
 import com.ruto.pthotoditor2.core.image.segmentation.process.mask.scailing.MaskScale.featherAlphaMask2
+import com.ruto.pthotoditor2.debuggingfunction.ColorLogger
 import com.ruto.pthotoditor2.feature.editor.model.UpScaletype
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -143,7 +143,7 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
 
                 // Feather 마스크 처리
                 val faceFeather = featherAlphaMask2(faceHairMask, 3.0)
-
+                ColorLogger.logAlphaHistogram(faceFeather,"faceHairMask")
                 val eyeFeather = featherAlphaMask(eyeMaskRaw, 5.0)
 
 
