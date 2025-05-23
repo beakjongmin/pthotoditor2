@@ -58,7 +58,7 @@ object SelfieSegmentor {
 //        val extendedLeft = (face.left - face.width() * paddingRatio).toInt().coerceAtLeast(0)
 //        val extendedRight = (face.right + face.width() * paddingRatio).toInt().coerceAtMost(bitmap.width)
         val extendedTop = (face.top - face.height() * 0.3f).toInt().coerceAtLeast(0)
-        val extendedBottom = (face.bottom + face.height() * 0.2f).toInt().coerceAtMost(bitmap.height)
+        val extendedBottom = (face.bottom + face.height() * 0.05f).toInt().coerceAtMost(bitmap.height)
         val extendedLeft = face.left
         val extendedRight = face.right
         return Rect(extendedLeft, extendedTop, extendedRight, extendedBottom)

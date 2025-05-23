@@ -9,10 +9,10 @@ object OpenCvUtils {
 
 
     /**
-     * MLKit SegmentationMask를 소프트 알파 마스크로 변환합니다.
+     * MLKit SegmentationMask를 하드 알파 마스크로 변환합니다.
      */
-    fun toSoftAlphaMask(mask: com.google.mlkit.vision.segmentation.SegmentationMask, width: Int, height: Int): Bitmap {
-        return MaskUtils.toSoftAlphaMask(mask, width, height)
+    fun toHardAlphaMask(mask: com.google.mlkit.vision.segmentation.SegmentationMask, width: Int, height: Int): Bitmap {
+        return MaskUtils.toHardAlphaMask(mask, width, height)
     }
 
     /**
@@ -49,4 +49,10 @@ object OpenCvUtils {
         return MaskUtils.extractMaskedRegion(bitmap, mask)
     }
 
+    /**
+     * 이미지 마스크 기반으로 두 이미지를 합성합니다. ( Orignal은 원본 , filterd는 전체 필터 적용된 rawimage,mask 는 마스크영역만 적용하고 나머지는 롤백)
+     */
+    fun applyFilterWithAlphaMask(original: Bitmap, filtered: Bitmap, mask: Bitmap) : Bitmap {
+        return  MaskUtils.applyFilterWithAlphaMask(original,filtered,mask)
+    }
 }

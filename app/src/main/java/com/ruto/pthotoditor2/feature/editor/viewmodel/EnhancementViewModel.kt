@@ -9,10 +9,10 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ruto.photoeditor2.core.image.ml.SuperResolutionHelper
+import com.ruto.pthotoditor2.core.image.commonutil.HardwareBitmapConvert.ensureSoftwareConfig
 import com.ruto.pthotoditor2.core.image.opencv.OpenCvFilters
 import com.ruto.pthotoditor2.core.image.opencv.OpenCvUtils
-import com.ruto.pthotoditor2.core.image.opencv.OpenCvUtils.toSoftAlphaMask
-import com.ruto.pthotoditor2.core.image.segmentation.process.dslr.ensureSoftwareConfig
+
 import com.ruto.pthotoditor2.core.image.segmentation.process.facedetection.SelfieSegmentor
 import com.ruto.pthotoditor2.core.image.segmentation.process.facedetection.SelfieSegmentor.detectFaceWithHairRegion
 import com.ruto.pthotoditor2.core.image.segmentation.process.facelandmark.FaceLandmarkerHelper
@@ -20,7 +20,6 @@ import com.ruto.pthotoditor2.core.image.segmentation.process.mask.FacialPartMask
 import com.ruto.pthotoditor2.core.image.segmentation.process.mask.MaskBlender
 import com.ruto.pthotoditor2.core.image.segmentation.process.mask.scailing.MaskScale.featherAlphaMask
 import com.ruto.pthotoditor2.core.image.segmentation.process.mask.scailing.MaskScale.featherAlphaMask2
-import com.ruto.pthotoditor2.debuggingfunction.saveImageToGallery
 import com.ruto.pthotoditor2.feature.editor.model.UpScaletype
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -74,8 +73,7 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
                 // 마스크 생성 (전체 face mask)
                 val fullPersonMask = SelfieSegmentor.segment(croppedHead)
 
-                //confidence 가 들어가있는 fullpersonMask 임
-                val faceAlphaMask = toSoftAlphaMask(fullPersonMask, croppedHead.width, croppedHead.height)
+                val faceAlphaMask = OpenCvUtils.toHardAlphaMask(fullPersonMask, croppedHead.width, croppedHead.height)
 
                 // Eye mask 생성
                 val (eyeMaskRaw, _) = createEyeAndMouthMasks(croppedHead)
@@ -104,6 +102,9 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
 
                 // ✅ 2. 랜드마크 기반 턱선 마스크 생성
                 val jawlineMask = LandmarkMaskUtil.createClosedFaceContourMask(landmarks, croppedHead.width, croppedHead.height)
+
+
+
                 // 1. 얼굴 + 머리카락 마스크 생성
                 val faceHairMask = MaskBlender.createFaceAndHairMask(
                     segmentMask = faceAlphaMask,
@@ -112,24 +113,33 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
                     height = croppedHead.height
                 )
 
-                // 2. 디버깅용 저장
-                saveImageToGallery(context, jawlineMask, "jawlineMask")
-                saveImageToGallery(context, faceHairMask, "face_hair_mask")
-                // ✅ 3. segment + jawline 마스크 병합 ( and 연산을 하여서 교집함 부분만 true 값 아니면 false)
-//                val combinedMat = MaskUtils.andMasks(segmentAlpha, jawlineMask)  // Mat 반환
-//                val combinedMaskBitmap = Bitmap.createBitmap(croppedHead.width, croppedHead.height, Bitmap.Config.ARGB_8888)
-//                Utils.matToBitmap(combinedMat, combinedMaskBitmap)
-//                combinedMat.release()
+                /**
+                 * 디버깅
+                val debugimage2 = convertmask.createDebugVisualMask(faceHairMask)
+                saveImageToGallery(context, croppedHead, "croppedHead")
+                saveImageToGallery(context, faceAlphaMask, "faceAlphaMask")
+                saveImageToGallery(context, debugimage2, "faceHairMask")
+                ColorLogger.logAlphaHistogram(faceAlphaMask,"faceAlphaMask")
+                ColorLogger.logAlphaHistogram(jawlineMask,"jawlineMask")
+                ColorLogger.logAlphaHistogram(faceHairMask,"faceHairMask")
+                 */
 
-//                saveImageToGallery(context, jawlineMask, "jawlineMask")
-//                saveImageToGallery(context, croppedHead, "croppedHead")
-//                saveImageToGallery(context, segmentAlpha, "segment_mask")
 
-                // 필터 처리
+                val rawFiltered = OpenCvFilters.applyFilter(croppedHead, type)
 
-                val filteredFace = OpenCvFilters.applyFilter(croppedHead, type) //전체 필터 적용
+                val filteredFace = OpenCvUtils.applyFilterWithAlphaMask(
+                    original = croppedHead,
+                    filtered = rawFiltered,
+                    mask = faceHairMask
+                )
 
-                val filteredEyes = OpenCvFilters.applyEyesFilter(croppedHead,type) //눈만적용
+                val rawFilteredEyes = OpenCvFilters.applyEyesFilter(croppedHead,type) //눈만적용
+
+                val filteredEyes = OpenCvUtils.applyFilterWithAlphaMask(
+                    original = croppedHead,
+                    filtered = rawFilteredEyes,
+                    mask = eyeMaskRaw
+                )
 
                 // Feather 마스크 처리
                 val faceFeather = featherAlphaMask2(faceHairMask, 3.0)
@@ -150,7 +160,7 @@ class EnhancementViewModel @Inject constructor() : ViewModel() {
                 //(얼굴 영역)
                 OpenCvUtils.blend(resultBitmap, filteredFace, faceFeather)
 
-//                saveImageToGallery(context,resultBitmap,"resultBitmap")
+
                 //(눈 영역)
                 OpenCvUtils.blend(resultBitmap, filteredEyes, eyeFeather)
                 // 톤 매칭

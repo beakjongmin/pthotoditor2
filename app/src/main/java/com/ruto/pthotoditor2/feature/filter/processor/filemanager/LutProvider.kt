@@ -1,7 +1,6 @@
 package com.ruto.pthotoditor2.feature.filter.manager
 
 import android.content.Context
-import com.ruto.pthotoditor2.R
 import com.ruto.pthotoditor2.feature.filter.model.LutModel
 import java.util.UUID
 

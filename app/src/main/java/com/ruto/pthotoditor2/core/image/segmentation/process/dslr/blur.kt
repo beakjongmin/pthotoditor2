@@ -2,28 +2,13 @@ package com.ruto.pthotoditor2.core.image.segmentation.process.dslr
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.ruto.pthotoditor2.core.image.commonutil.HardwareBitmapConvert.ensureSoftwareConfig
 import org.opencv.android.Utils
 import org.opencv.core.Mat
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 
-// ✅ HARDWARE 비트맵을 안전하게 소프트웨어 비트맵으로 변환
-//fun Bitmap.ensureSoftwareConfig(): Bitmap {
-//    return if (this.config == Bitmap.Config.HARDWARE) {
-//        this.copy(Bitmap.Config.ARGB_8888, false)
-//    } else {
-//        this
-//    }
-//}
 
-fun Bitmap.ensureSoftwareConfig(): Bitmap {
-
-    return if (this.config == Bitmap.Config.HARDWARE || !this.isMutable) {
-        this.copy(Bitmap.Config.ARGB_8888, true)
-    } else {
-        this
-    }
-}
 
 // ✅ OpenCV Gaussian Blur 함수
 fun Bitmap.blur(context: Context, radius: Float = 20f): Bitmap? {

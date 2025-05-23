@@ -4,7 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.util.Log
-import com.ruto.pthotoditor2.core.image.segmentation.process.dslr.ensureSoftwareConfig
+import com.ruto.pthotoditor2.core.image.commonutil.HardwareBitmapConvert.ensureSoftwareConfig
+
 import com.ruto.pthotoditor2.core.image.ml.policy.UpscalePolicy
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter

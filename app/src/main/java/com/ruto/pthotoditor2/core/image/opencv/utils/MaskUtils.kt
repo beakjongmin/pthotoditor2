@@ -2,11 +2,8 @@ package com.ruto.pthotoditor2.core.image.opencv.utils
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.util.Log
 import com.google.mlkit.vision.segmentation.SegmentationMask
-import org.opencv.android.Utils
-import org.opencv.core.Core
-import org.opencv.core.Mat
-import org.opencv.imgproc.Imgproc
 
 
 /*
@@ -57,27 +54,67 @@ object MaskUtils {
         return result
     }
 
-    fun andMasks(mask1: Bitmap, mask2: Bitmap): Mat {
-        val m1 = Mat()
-        val m2 = Mat()
-        val gray1 = Mat()
-        val gray2 = Mat()
-        val result = Mat()
-        try {
-            Utils.bitmapToMat(mask1, m1)
-            Utils.bitmapToMat(mask2, m2)
+    fun toHardAlphaMask(mask: SegmentationMask, width: Int, height: Int, threshold: Float = 0.6f): Bitmap {
+        val buffer = mask.buffer
+        buffer.rewind()
+        val pixels = IntArray(width * height)
 
-            Imgproc.cvtColor(m1, gray1, Imgproc.COLOR_RGBA2GRAY)
-            Imgproc.cvtColor(m2, gray2, Imgproc.COLOR_RGBA2GRAY)
-
-            Core.bitwise_and(gray1, gray2, result)
-            return result.clone() // 호출자에서 해제해야 하므로 clone()
-        } finally {
-            m1.release()
-            m2.release()
-            gray1.release()
-            gray2.release()
-            // result는 호출자에서 사용하는 값이므로 여기서는 release X
+        for (i in pixels.indices) {
+            val confidence = buffer.float
+            val alpha = if (confidence >= threshold) 255 else 0
+            pixels[i] = (alpha shl 24) or 0xFFFFFF // 흰색 RGB + 알파
         }
+
+        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+    }
+
+
+    fun applyFilterWithAlphaMask(
+        original: Bitmap,
+        filtered: Bitmap,
+        mask: Bitmap
+    ): Bitmap {
+        require(original.width == filtered.width && filtered.width == mask.width)
+        require(original.height == filtered.height && filtered.height == mask.height)
+
+        val result = Bitmap.createBitmap(original.width, original.height, Bitmap.Config.ARGB_8888)
+
+        val originalPixels = IntArray(original.width * original.height)
+        val filteredPixels = IntArray(filtered.width * filtered.height)
+        val maskPixels = IntArray(mask.width * mask.height)
+
+        original.getPixels(originalPixels, 0, original.width, 0, 0, original.width, original.height)
+
+        filtered.getPixels(filteredPixels, 0, filtered.width, 0, 0, filtered.width, filtered.height)
+
+        mask.getPixels(maskPixels,0,mask.width,0,0,mask.width,mask.height)
+
+        var countTotal = maskPixels.size
+        var countApplied = 0
+        var countSkipped = 0
+        var maxAlpha = 0
+        var minAlpha = 255
+
+        for (i in maskPixels.indices) {
+            val alpha = (maskPixels[i] shr 24) and 0xFF
+
+            if (alpha > 0) {
+                result.setPixel(i % original.width, i / original.width, filteredPixels[i])
+                countApplied++
+            } else {
+                result.setPixel(i % original.width, i / original.width, originalPixels[i])
+                countSkipped++
+            }
+
+            if (alpha > maxAlpha) maxAlpha = alpha
+            if (alpha < minAlpha) minAlpha = alpha
+        }
+
+        Log.d("AlphaMaskDebug", "📊 전체 픽셀 수: $countTotal")
+        Log.d("AlphaMaskDebug", "✅ 필터 적용 픽셀 수 (alpha > 0): $countApplied")
+        Log.d("AlphaMaskDebug", "⛔ 필터 미적용 픽셀 수 (alpha = 0): $countSkipped")
+        Log.d("AlphaMaskDebug", "🔍 알파 값 범위: $minAlpha ~ $maxAlpha")
+
+        return result
     }
 }
