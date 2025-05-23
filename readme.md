@@ -104,18 +104,5 @@
 | 얼굴 윤곽선 기반 마스크 | 세그먼트 기반 얼굴+헤어 | 두 마스크 결합 영역 (정밀 필터 영역 확보) | 
 
 
-## 앞으로 해결해야할 과제 
 
-### filter 적용을 mask alpha 부분만 적용 
-```
-EnhancementViewModel.kt 131. val filteredFace = OpenCvFilters.applyFilter(croppedHead, type) //전체 필터 적용
-```
-=======
-
-
-  origin/master   ← 배포용 (배포는 여기서만)
-  --
-  origin/develop  ← 개발통합용 (기능 합쳐서 테스트)
-  --
-  feature/*       ← 실험 및 기능 개발용 (완성되면 develop로 merge)
   --
