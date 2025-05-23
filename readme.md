@@ -1,3 +1,4 @@
+
 # 📷 Portrait Editor - FaceMesh 기반 얼굴 윤곽 필터 시스템 도입
 
 ## ✅ 목적
@@ -19,7 +20,6 @@
 | 🔄 필터 겹침 현상 | 눈·입·피부 필터 간 경계가 맞지 않아 Tone mismatch 현상 발생 |
 | ❌ 자연스러운 윤곽 부족 | 헤어 라인 또는 턱 라인 필터 적용 시 부자연스러운 경계 표현 |
 
-
 ### 🎨 전체 이미지 필터 처리 비교
 
 | Before (Original) | After (Filtered) |
@@ -35,7 +35,6 @@
 |---------------------|------------------------------------|
 | ![Cropped](sampleimage/cropped.jpg) | ![Sharped](sampleimage/sharped.jpg) |
 | Rect 기반 얼굴 잘라낸 이미지 | 기존 필터 처리된 얼굴 |
-
 
 ### 개선 후 기대 효과
 
@@ -94,12 +93,20 @@
 
 ### 2. 얼굴 윤곽선 마스크 생성
 
-- `landmarkList`에서 얼굴 외곽 (예: 0~16, 234~454) 추출
-- `Path` or OpenCV `fillPoly()`로 마스크 생성
+### ✂️ 얼굴 영역 마스크 비교
 
-### 3. 마스크 결합 처리
+### 🧪 얼굴 마스크 단계별 비교
 
-```kotlin
-val faceMask = toSoftAlphaMask(segmentation, ...)
-val polygonMask = createFacePolygonMaskFromLandmarks(...)
-val combinedMask = combineMaskAlpha(faceMask, polygonMask)
+| 🧩 Landmark 마스크 | 🧠 Segmentation 마스크 | 🎯 결합 마스크 |
+|--------------------|------------------------|----------------|
+| ![Landmark Mask](https://github.com/user-attachments/assets/2069ccd0-5a29-4842-b5ce-4120f99d09ed) | ![Segment Mask](https://github.com/user-attachments/assets/8bd5dd05-6477-4d63-9153-d6086aedd42e) | ![Combined Mask](https://github.com/user-attachments/assets/1d80b5f1-b3ff-4942-b16b-c332107a5ac9) |
+| 얼굴 윤곽선 기반 마스크 | 세그먼트 기반 얼굴+헤어 | 두 마스크 결합 영역 (정밀 필터 영역 확보) | 
+
+
+## 앞으로 해결해야할 과제 
+
+### filter 적용을 mask alpha 부분만 적용 
+```
+EnhancementViewModel.kt 131. val filteredFace = OpenCvFilters.applyFilter(croppedHead, type) //전체 필터 적용
+```
+
