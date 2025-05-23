@@ -1,4 +1,5 @@
 
+
 # 📷 Portrait Editor - FaceMesh 기반 얼굴 윤곽 필터 시스템 도입
 
 ## ✅ 목적
@@ -109,4 +110,12 @@
 ```
 EnhancementViewModel.kt 131. val filteredFace = OpenCvFilters.applyFilter(croppedHead, type) //전체 필터 적용
 ```
+=======
 
+
+  origin/master   ← 배포용 (배포는 여기서만)
+  --
+  origin/develop  ← 개발통합용 (기능 합쳐서 테스트)
+  --
+  feature/*       ← 실험 및 기능 개발용 (완성되면 develop로 merge)
+  --
