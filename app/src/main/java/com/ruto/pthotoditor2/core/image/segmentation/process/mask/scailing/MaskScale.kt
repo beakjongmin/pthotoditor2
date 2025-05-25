@@ -9,8 +9,8 @@ import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 
 object MaskScale {
-
-    fun featherAlphaMask2(mask: Bitmap, radius: Double = 3.0): Bitmap {
+    //현재 사용중인것
+    fun featherAlphaMask(mask: Bitmap, radius: Double = 3.0): Bitmap {
         val mat = Mat()
         Utils.bitmapToMat(mask, mat)
 
@@ -34,20 +34,20 @@ object MaskScale {
         return result
     }
 
-    fun featherAlphaMask(mask: Bitmap, radius: Double = 3.0): Bitmap {
-        val mat = Mat()
-        Utils.bitmapToMat(mask, mat)
-        val channels = ArrayList<Mat>()
-        Core.split(mat, channels)
-
-        val alpha = channels[3]
-        Imgproc.GaussianBlur(alpha, alpha, Size(radius, radius), 0.0)
-
-        channels[3] = alpha
-        Core.merge(channels, mat)
-
-        val result = Bitmap.createBitmap(mask.width, mask.height, Bitmap.Config.ARGB_8888)
-        Utils.matToBitmap(mat, result)
-        return result
-    }
+//    fun featherAlphaMask(mask: Bitmap, radius: Double = 3.0): Bitmap {
+//        val mat = Mat()
+//        Utils.bitmapToMat(mask, mat)
+//        val channels = ArrayList<Mat>()
+//        Core.split(mat, channels)
+//
+//        val alpha = channels[3]
+//        Imgproc.GaussianBlur(alpha, alpha, Size(radius, radius), 0.0)
+//
+//        channels[3] = alpha
+//        Core.merge(channels, mat)
+//
+//        val result = Bitmap.createBitmap(mask.width, mask.height, Bitmap.Config.ARGB_8888)
+//        Utils.matToBitmap(mat, result)
+//        return result
+//    }
 }

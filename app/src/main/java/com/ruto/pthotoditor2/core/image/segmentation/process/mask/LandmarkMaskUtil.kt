@@ -34,7 +34,6 @@ object LandmarkMaskUtil {
         val outlinePoints = outlineIndices.mapIndexed { i, idx ->
             val x = (landmarks[idx].x() * width).toInt().toDouble()
             val y = (landmarks[idx].y() * height).toInt().toDouble()
-            Log.d("FaceMaskDebug", "▶ Point[$i] = (x=$x, y=$y)")
             Point(x, y)
         }.toMutableList()
         outlinePoints.add(outlinePoints.first()) // 윤곽 닫기
