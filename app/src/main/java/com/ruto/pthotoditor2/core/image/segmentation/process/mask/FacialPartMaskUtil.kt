@@ -115,6 +115,29 @@ object FacialPartMaskUtil {
         return result
     }
 
+    fun subtractHairFromFaceMaskSoft(faceHair: Bitmap, jawline: Bitmap): Bitmap {
+        val width = faceHair.width
+        val height = faceHair.height
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                val fullAlpha = Color.alpha(faceHair.getPixel(x, y))
+                val jawAlpha = Color.alpha(jawline.getPixel(x, y))
+
+                // 기존 subtract 대신: jawline 영역은 부드럽게 약화
+                val reducedAlpha = if (jawAlpha > 0) {
+                    (fullAlpha * 0.4).toInt() // 40%만 유지
+                } else {
+                    fullAlpha
+                }
+
+                val clamped = reducedAlpha.coerceIn(0, 255)
+                result.setPixel(x, y, Color.argb(clamped, 255, 255, 255))
+            }
+        }
+        return result
+    }
     suspend fun createEyeAndMouthMasks(croppedFace: Bitmap): Pair<Bitmap?, Bitmap?> {
         val detectorOptions = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
