@@ -1,8 +1,8 @@
 
+
 import android.graphics.Bitmap
 import android.util.Log
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
-
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.CvType
@@ -20,6 +20,7 @@ object LandmarkMaskUtil {
         width: Int,
         height: Int
     ): Bitmap {
+
         Log.d("FaceMaskDebug", "🎯 Mask size: ${width} x $height")
         Log.d("FaceMaskDebug", "✅ landmarks.size = ${landmarks.size}")
 
@@ -73,4 +74,5 @@ object LandmarkMaskUtil {
         Log.d("FaceMaskDebug", "✅ Mask generation complete with proper alpha")
         return result
     }
+
     }

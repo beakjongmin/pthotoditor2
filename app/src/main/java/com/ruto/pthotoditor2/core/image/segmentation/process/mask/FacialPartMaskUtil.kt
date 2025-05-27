@@ -8,16 +8,13 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PointF
 import android.util.Log
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceContour
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.ruto.pthotoditor2.core.image.segmentation.process.facelandmark.FaceMeshIndices
 import kotlinx.coroutines.tasks.await
-import org.opencv.android.Utils
-import org.opencv.core.Core
-import org.opencv.core.CvType
-import org.opencv.core.Mat
-import org.opencv.imgproc.Imgproc
 
 
 /**
@@ -25,81 +22,7 @@ import org.opencv.imgproc.Imgproc
  */
 object FacialPartMaskUtil {
 
-    fun subtractMaskOpenCV(baseMask: Bitmap, eyeMask: Bitmap): Bitmap {
-        val baseMat = Mat()
-        val eyeMat = Mat()
-        val result = Mat()
 
-        Utils.bitmapToMat(baseMask, baseMat)
-        Utils.bitmapToMat(eyeMask, eyeMat)
-
-        // 단일 채널 알파 값만 비교한다면 아래처럼 gray 변환 후 subtract
-        Imgproc.cvtColor(baseMat, baseMat, Imgproc.COLOR_RGBA2GRAY)
-        Imgproc.cvtColor(eyeMat, eyeMat, Imgproc.COLOR_RGBA2GRAY)
-
-        Core.subtract(baseMat, eyeMat, result)
-
-        val resultBitmap = Bitmap.createBitmap(result.cols(), result.rows(), Bitmap.Config.ARGB_8888)
-        Imgproc.cvtColor(result, result, Imgproc.COLOR_GRAY2RGBA)
-        Utils.matToBitmap(result, resultBitmap)
-        return resultBitmap
-    }
-    //OpenCV subtract는 대체로 dense한 마스크(예: 전체 인물 세그먼트)에 유리
-    fun subtractMaskOpenCVFixed(baseMask: Bitmap, eyeMask: Bitmap): Bitmap {
-        val baseMat = Mat()
-        val eyeMat = Mat()
-        val resultMat = Mat()
-
-        Utils.bitmapToMat(baseMask, baseMat)
-        Utils.bitmapToMat(eyeMask, eyeMat)
-
-        val baseChannels = ArrayList<Mat>()
-        val eyeChannels = ArrayList<Mat>()
-
-        Core.split(baseMat, baseChannels)
-        Core.split(eyeMat, eyeChannels)
-
-        val baseAlpha = baseChannels[3]
-        val eyeAlpha = eyeChannels[3]
-        val resultAlpha = Mat()
-
-        // ✅ 눈 마스크 알파를 threshold 처리
-        Imgproc.threshold(eyeAlpha, eyeAlpha, 10.0, 255.0, Imgproc.THRESH_BINARY)
-
-        Core.subtract(baseAlpha, eyeAlpha, resultAlpha)
-
-        val white = Mat.ones(baseAlpha.size(), CvType.CV_8UC1).apply {
-            convertTo(this, CvType.CV_8UC1, 255.0)
-        }
-
-        val merged = arrayListOf(white.clone(), white.clone(), white.clone(), resultAlpha)
-        Core.merge(merged, resultMat)
-
-        val output = Bitmap.createBitmap(resultMat.cols(), resultMat.rows(), Bitmap.Config.ARGB_8888)
-        Utils.matToBitmap(resultMat, output)
-
-        Log.d("SubtractDebug", "baseAlpha mean=${Core.mean(baseAlpha)}")
-        Log.d("SubtractDebug", "eyeAlpha mean (after threshold)=${Core.mean(eyeAlpha)}")
-
-        // 💥 release 처리
-        baseMat.release()
-        eyeMat.release()
-        resultMat.release()
-        baseAlpha.release()
-        eyeAlpha.release()
-        resultAlpha.release()
-        white.release()
-        baseChannels.forEach { it.release() }
-        eyeChannels.forEach { it.release() }
-        merged.forEach { it.release() }
-
-        return output
-    }
-
-//    이 함수는 성능이 약간 느릴 수 있어 (픽셀 루프)
-//
-//    하지만 정확성이 중요할 때는 이 방식이 더 신뢰 가능
-//
 //    특히 눈처럼 좁고 예민한 마스크 영역에서는 픽셀 단위가 더 확실
     fun subtractMask(full: Bitmap, subtract: Bitmap): Bitmap {
         val result = Bitmap.createBitmap(full.width, full.height, Bitmap.Config.ARGB_8888)
@@ -115,29 +38,28 @@ object FacialPartMaskUtil {
         return result
     }
 
-    fun subtractHairFromFaceMaskSoft(faceHair: Bitmap, jawline: Bitmap): Bitmap {
-        val width = faceHair.width
-        val height = faceHair.height
+    fun subtractMask(full: Bitmap, subtract: Bitmap, threshold: Int = 5): Bitmap {
+        val width = full.width
+        val height = full.height
         val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 
         for (y in 0 until height) {
             for (x in 0 until width) {
-                val fullAlpha = Color.alpha(faceHair.getPixel(x, y))
-                val jawAlpha = Color.alpha(jawline.getPixel(x, y))
+                val fullAlpha = Color.alpha(full.getPixel(x, y))
+                val subAlpha = Color.alpha(subtract.getPixel(x, y))
 
-                // 기존 subtract 대신: jawline 영역은 부드럽게 약화
-                val reducedAlpha = if (jawAlpha > 0) {
-                    (fullAlpha * 0.4).toInt() // 40%만 유지
+                val newAlpha = if (subAlpha >= threshold) {
+                    0 // 강제 제거
                 } else {
                     fullAlpha
                 }
 
-                val clamped = reducedAlpha.coerceIn(0, 255)
-                result.setPixel(x, y, Color.argb(clamped, 255, 255, 255))
+                result.setPixel(x, y, Color.argb(newAlpha, 255, 255, 255))
             }
         }
         return result
     }
+
     suspend fun createEyeAndMouthMasks(croppedFace: Bitmap): Pair<Bitmap?, Bitmap?> {
         val detectorOptions = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
@@ -162,7 +84,10 @@ object FacialPartMaskUtil {
         val rawMouthMask = Bitmap.createBitmap(width, height, Bitmap.Config.ALPHA_8)
         val eyeCanvas = Canvas(rawEyeMask)
         val mouthCanvas = Canvas(rawMouthMask)
-        val paint = Paint().apply { color = Color.WHITE }
+        val paint = Paint().apply {
+            color = Color.WHITE
+            isAntiAlias = false
+        }
 
         val face = faces.first()
 
@@ -209,22 +134,87 @@ object FacialPartMaskUtil {
         canvas.drawBitmap(mask, matrix, null)
         return output
     }
-    private fun drawAccurateEyeMask(
-        canvas: Canvas,
-        top: List<PointF>?,
-        bottom: List<PointF>?,
-        paint: Paint
-    ) {
-        if (top.isNullOrEmpty() || bottom.isNullOrEmpty()) return
 
-        val path = Path().apply {
-            moveTo(top.first().x, top.first().y)
-            top.drop(1).forEach { lineTo(it.x, it.y) }
-            bottom.reversed().forEach { lineTo(it.x, it.y) }
-            close()
+
+    fun createEyeMaskFromLandmarks(
+        landmarks: List<NormalizedLandmark>,
+        width: Int,
+        height: Int
+    ): Bitmap {
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        val paint = Paint().apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+            isAntiAlias = false // <-- 이걸 false 로 설정
         }
-        canvas.drawPath(path, paint)
+
+        fun drawPolygon(indices: List<Int>) {
+            val path = Path().apply {
+                val first = landmarks[indices.first()]
+                moveTo(first.x() * width, first.y() * height)
+                for (i in 1 until indices.size) {
+                    val pt = landmarks[indices[i]]
+                    lineTo(pt.x() * width, pt.y() * height)
+                }
+                close()
+            }
+            canvas.drawPath(path, paint)
+        }
+
+        drawPolygon(FaceMeshIndices.LEFT_EYE)
+        drawPolygon(FaceMeshIndices.RIGHT_EYE)
+
+        return result
     }
+
+    fun createEyeBrowFromLandmarks(
+        landmarks: List<NormalizedLandmark>,
+        width: Int,
+        height: Int
+    ): Bitmap {
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        val paint = Paint().apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+
+        fun drawPolygon(indices: List<Int>) {
+            val path = Path().apply {
+                val first = landmarks[indices.first()]
+                moveTo(first.x() * width, first.y() * height)
+                for (i in 1 until indices.size) {
+                    val pt = landmarks[indices[i]]
+                    lineTo(pt.x() * width, pt.y() * height)
+                }
+                close()
+            }
+            canvas.drawPath(path, paint)
+        }
+
+        drawPolygon(FaceMeshIndices.LEFT_EYEBROW)
+        drawPolygon(FaceMeshIndices.RIGHT_EYEBROW)
+
+        return result
+    }
+//    private fun drawAccurateEyeMask(
+//        canvas: Canvas,
+//        top: List<PointF>?,
+//        bottom: List<PointF>?,
+//        paint: Paint
+//    ) {
+//        if (top.isNullOrEmpty() || bottom.isNullOrEmpty()) return
+//
+//        val path = Path().apply {
+//            moveTo(top.first().x, top.first().y)
+//            top.drop(1).forEach { lineTo(it.x, it.y) }
+//            bottom.reversed().forEach { lineTo(it.x, it.y) }
+//            close()
+//        }
+//        canvas.drawPath(path, paint)
+//    }
 
 
 }
