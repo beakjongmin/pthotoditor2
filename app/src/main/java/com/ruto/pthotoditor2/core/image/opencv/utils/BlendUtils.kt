@@ -88,19 +88,19 @@ object BlendUtils {
 
     fun blendCroppedRegionBack(
         original: Bitmap,
-        upscaledPerson: Bitmap,
+        ProcessedPerson: Bitmap,
         mask: Bitmap,
         offsetX: Int,
         offsetY: Int
     ): Bitmap {
         val result = original.copy(Bitmap.Config.ARGB_8888, true)
 
-        val resizedMask = Bitmap.createScaledBitmap(mask, upscaledPerson.width, upscaledPerson.height, true)
-        val personPixels = IntArray(upscaledPerson.width * upscaledPerson.height)
-        val maskPixels = IntArray(upscaledPerson.width * upscaledPerson.height)
+        val resizedMask = Bitmap.createScaledBitmap(mask, ProcessedPerson.width, ProcessedPerson.height, true)
+        val personPixels = IntArray(ProcessedPerson.width * ProcessedPerson.height)
+        val maskPixels = IntArray(ProcessedPerson.width * ProcessedPerson.height)
 
-        upscaledPerson.getPixels(personPixels, 0, upscaledPerson.width, 0, 0, upscaledPerson.width, upscaledPerson.height)
-        resizedMask.getPixels(maskPixels, 0, upscaledPerson.width, 0, 0, upscaledPerson.width, upscaledPerson.height)
+        ProcessedPerson.getPixels(personPixels, 0, ProcessedPerson.width, 0, 0, ProcessedPerson.width, ProcessedPerson.height)
+        resizedMask.getPixels(maskPixels, 0, ProcessedPerson.width, 0, 0, ProcessedPerson.width, ProcessedPerson.height)
 
         // ✅ 블렌딩에 실제 사용될 마스크 픽셀 중 알파가 의미 있는 픽셀 수 계산
         var changedPixels = 0
@@ -113,9 +113,9 @@ object BlendUtils {
         Log.d("BlendDebug", "💡 블렌딩 영역 알파 > 30 픽셀 수: $changedPixels / ${maskPixels.size}")
 
 
-        for (y in 0 until upscaledPerson.height) {
-            for (x in 0 until upscaledPerson.width) {
-                val i = y * upscaledPerson.width + x
+        for (y in 0 until ProcessedPerson.height) {
+            for (x in 0 until ProcessedPerson.width) {
+                val i = y * ProcessedPerson.width + x
                 val alpha = (maskPixels[i] shr 24) and 0xFF
                 if (alpha > 0) {
                     val pixel = personPixels[i]

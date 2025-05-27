@@ -34,12 +34,12 @@ object OpenCvUtils {
      */
     fun blendCroppedRegionBack(
         original: Bitmap,
-        upscaledPerson: Bitmap,
+        ProcessedPerson: Bitmap,
         mask: Bitmap,
         offsetX: Int,
         offsetY: Int
     ): Bitmap {
-        return BlendUtils.blendCroppedRegionBack(original, upscaledPerson, mask, offsetX, offsetY)
+        return BlendUtils.blendCroppedRegionBack(original, ProcessedPerson, mask, offsetX, offsetY)
     }
 
     /**
