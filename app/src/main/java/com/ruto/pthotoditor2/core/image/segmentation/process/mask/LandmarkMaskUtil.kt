@@ -1,8 +1,8 @@
 
+
 import android.graphics.Bitmap
 import android.util.Log
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
-
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.CvType
@@ -20,6 +20,7 @@ object LandmarkMaskUtil {
         width: Int,
         height: Int
     ): Bitmap {
+
         Log.d("FaceMaskDebug", "🎯 Mask size: ${width} x $height")
         Log.d("FaceMaskDebug", "✅ landmarks.size = ${landmarks.size}")
 
@@ -34,7 +35,6 @@ object LandmarkMaskUtil {
         val outlinePoints = outlineIndices.mapIndexed { i, idx ->
             val x = (landmarks[idx].x() * width).toInt().toDouble()
             val y = (landmarks[idx].y() * height).toInt().toDouble()
-            Log.d("FaceMaskDebug", "▶ Point[$i] = (x=$x, y=$y)")
             Point(x, y)
         }.toMutableList()
         outlinePoints.add(outlinePoints.first()) // 윤곽 닫기
@@ -74,4 +74,5 @@ object LandmarkMaskUtil {
         Log.d("FaceMaskDebug", "✅ Mask generation complete with proper alpha")
         return result
     }
+
     }

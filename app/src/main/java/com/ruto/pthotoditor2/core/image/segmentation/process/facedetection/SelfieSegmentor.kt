@@ -64,4 +64,5 @@ object SelfieSegmentor {
         return Rect(extendedLeft, extendedTop, extendedRight, extendedBottom)
     }
 
+
 }

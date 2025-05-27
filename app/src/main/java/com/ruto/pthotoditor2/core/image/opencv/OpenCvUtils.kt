@@ -23,23 +23,30 @@ object OpenCvUtils {
     }
 
     /**
+     * blen opencv 활용
+     */
+    fun BlendOpencv(base: Bitmap, overlay: Bitmap, alphaMask: Bitmap) {
+        BlendUtils.blendopencv(base, overlay, alphaMask)
+    }
+
+    /**
      * cropped 영역을 원본 이미지에 다시 합성합니다.
      */
     fun blendCroppedRegionBack(
         original: Bitmap,
-        upscaledPerson: Bitmap,
+        ProcessedPerson: Bitmap,
         mask: Bitmap,
         offsetX: Int,
         offsetY: Int
     ): Bitmap {
-        return BlendUtils.blendCroppedRegionBack(original, upscaledPerson, mask, offsetX, offsetY)
+        return BlendUtils.blendCroppedRegionBack(original, ProcessedPerson, mask, offsetX, offsetY)
     }
 
     /**
      * 타겟 이미지를 기준 이미지의 평균 색상 톤에 맞춥니다.
      */
-    fun matchToneByMean(reference: Bitmap, target: Bitmap): Bitmap {
-        return ColorUtils.matchToneByMean(reference, target)
+    fun matchToneByMean(reference: Bitmap, target: Bitmap,alphaMask: Bitmap): Bitmap {
+        return ColorUtils.matchToneByMean(reference, target, alphaMask)
     }
 
     /**
